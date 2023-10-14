@@ -34,9 +34,6 @@ It is structured into two main directories: `Simulation` and `RealData`.
 ## Description
 ### Simulation
 
-- **function/**: 
-  - `trainfun.py`: Contains utility functions, including neural network training functions.
-
 - **Cases (1-6)**: Each `Case` directory corresponds to one of the 6 simulations from the article:
   - `data.py`: Script for data generation.
   - `train.py`: Script for model training.
@@ -94,7 +91,7 @@ Ensure that you configure the nocuda variable as per your computational resource
 
 1. Navigate to the `Airline` directory under `RealData`.
 
-2. The processed data is readily available for usage, stored in the `datahao` sub-directory. Hence, if you want to save time, you can skip the processing step.  If you can want to process the data independently: Please download the 2008 dataset from [here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/HG7NV7), place the `2008.csv` file in `data\`, and then run `process.r`.
+2. The processed data is readily available for usage, stored in the `datahao` sub-directory. Hence, if you want to save time, you can skip the processing step.  If you want to process the data independently: Please download the 2008 dataset from [here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/HG7NV7), place the `2008.csv` file in `data\`, and then run `process.r`.
 
 3. Launch Jupyter Notebook and open the training notebooks:
 - For training on various sample sizes and sampling frequencies, please use `nmtrain.ipynb`.
