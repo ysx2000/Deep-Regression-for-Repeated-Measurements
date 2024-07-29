@@ -13,7 +13,6 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image 
 import imageio 
-from early_stopping import EarlyStopping
 import os, gc
 import random 
 import pynvml
@@ -22,24 +21,37 @@ import itertools
 import subprocess
 import gc
 from functools import partial
-from pandarallel import pandarallel
 
 
+def mean_onedim_fun1(x, a = 0.3, b = 1.6):
+    ksize = 6
+    i1, i2, i3, i4, i5 = np.meshgrid(np.arange(ksize), np.arange(ksize), np.arange(ksize), np.arange(ksize), np.arange(ksize), indexing='ij')
+    im = np.max(np.array([i1,i2,i3,i4,i5]),axis=0)
+    reswei = np.sum( np.power((a), im) * np.cos(np.multiply(np.power(b,i1),2*math.pi* x[0])) * np.cos(np.multiply(np.power(b,i2), math.pi*x[1])) * np.cos(np.multiply(np.power(b,i3), (2/3)*math.pi*x[2]))* np.cos(np.multiply(np.power(b,i4), 0.5*math.pi*x[3]))* np.cos(np.multiply(np.power(b,i5), (2/5)*math.pi*x[4])) )
+    return reswei 
 
-
-def mean_onedim_fun1(x):
-    return ( (x[0]*x[0]*x[1]*x[1]*x[1] + math.log(1+x[2]) + math.sqrt(1+x[3]*x[4]) + math.exp(x[4]/2)) ** 2 - 12)
 
 
 
 def generate_onedim_fun1(n,m): 
+
     x_dim = 5 
-    # print("h")
-    x = np.random.uniform(low=0, high=1, size = n*m*x_dim) 
+    x1 = np.random.uniform(low=0, high=1, size = n*m).reshape(n, m) 
+    x2 = np.random.uniform(low=0, high=1, size = n*m).reshape(n, m)
+    x = np.empty((n, m, x_dim))
+    x[:,:,0] = np.cos(x1*2*math.pi)
+    x[:,:,1] = np.sin(x1*2*math.pi)
+    x[:,:,2] = x1
+    x[:,:,3] = np.sin(x2*2*math.pi)
+    x[:,:,4] = x2
+    
     x = x.reshape(n, m, x_dim) 
+
+
+
     y=[[]] 
-    for i in range(n):
-        yi = np.apply_along_axis(mean_onedim_fun1, 1, x[i])
+    for i in range(n): 
+        yi = np.apply_along_axis(mean_onedim_fun1, 1, x[i]) 
         a = np.random.normal(0, 1, size = 20) * 0.1 
         a2 = np.random.normal(0, 1, size = 20) * 0.1 
         b = np.random.normal(0, 1, size = 20) * 0.1 
@@ -51,7 +63,7 @@ def generate_onedim_fun1(n,m):
         e = np.random.normal(0, 1, size = 20) * 0.1 
         e2 = np.random.normal(0, 1, size = 20) * 0.1 
         for k in range(20): 
-            yi = yi + (a[k] * np.sin((k+1) * math.pi * x[i,:,0]) 
+            yi = yi + (math.sqrt(3)/math.sqrt(x_dim)) * (a[k] * np.sin((k+1) * math.pi * x[i,:,0]) 
                        + b[k] * np.sin((k+1) * math.pi * x[i,:,1]) 
                        + c[k] * np.sin((k+1) * math.pi * x[i,:,2]) 
                        + d[k] * np.sin((k+1) * math.pi * x[i,:,3]) 
@@ -80,13 +92,25 @@ def savedata(seed):
 
     print(seed)
     print("start")
-    n_train = 500
-    m_train = 500 
+    n_train = 3000 
+    m_train = 200 
 
     n_vaild = math.ceil(n_train*0.25) 
     m_valid = m_train 
 
     x_test = np.random.uniform(low=0, high=1, size=50000).reshape(-1,5)
+
+
+    x_dim = 5 
+    x1 = np.random.uniform(low=0, high=1, size = 10000)
+    x2 = np.random.uniform(low=0, high=1, size = 10000)
+    x_test = np.empty((10000, x_dim))
+    x_test[:,0] = np.cos(x1*2*math.pi)
+    x_test[:,1] = np.sin(x1*2*math.pi)
+    x_test[:,2] = x1
+    x_test[:,3] = np.sin(x2*2*math.pi)
+    x_test[:,4] = x2
+
     y_test = np.apply_along_axis(mean_onedim_fun1, 1, x_test)
     print(seed)
     print("test")
@@ -108,13 +132,15 @@ def savedata(seed):
 
 
 
-seedlist = list(range(100)) # This is just a number, from which the real seed is generated
+seedlist = list(range(50)) # This is just a number, from which the real seed is generated
 
 multiprocessing.set_start_method('forkserver', force=True)
 if __name__ == '__main__':
     seeds = list(seedlist)
-    nproc = 100 
+    nproc = 50 
     with multiprocessing.Pool(processes = nproc ) as pool: 
         pool.map(savedata, seedlist) 
+
+
 
 

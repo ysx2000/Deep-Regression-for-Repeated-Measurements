@@ -1,13 +1,16 @@
 ## Description
 
-- **Cases (1-6)**: Each `Case` directory corresponds to one of the 6 simulations from the article:
+- **Cases (1-3), Case4 (10d-30d) and Supplementary Cases (S1-S3)**: Each `Case` directory corresponds to one of the simulations from the paper:
   - `data.py`: Script for data generation.
-  - `train.py`: Script for model training.
+  - `train.py`: Trains DNN estimators.
+  - `localinear.py`: Trains local linear estimators.
+  - `RKHS.py`: Trains RKHS estimators.
+  - `spline.py`: Trains regression spline estimators for examples with $d\leq 5$.
   - `data/`: Stores generated data.
   - `res/`: Stores training results.
 
-- **plot.ipynb**: Visualizes final results from the simulations.
-
+- **result.ipynb**: Visualizes and summarizes final results from the simulations.
+- **resultsv/**: Stores intermediate results during the training process.
 
 ## How to Use
 
@@ -29,8 +32,8 @@ Ensure that you configure the nocuda variable as per your computational resource
 
 ### Simulation
 
-1. Navigate to the desired `case` directory within the `Simulation` folder.
+1. Navigate to the desired `Case` directory within the `Simulation` folder.
 2. Run `data.py` to generate the required data.
-3. Execute `train.py` to start the model training process. 
+3. Execute `train.py`, `localinear.py`, `RKHS.py`, and `spline.py` to train the respective estimator results. 
 4. After training, results will be saved in the `res/` directory.
-5. For visualizing the results, launch Jupyter and use `plot.ipynb`.
+5. For visualizing the results, launch Jupyter and use `result.ipynb`.

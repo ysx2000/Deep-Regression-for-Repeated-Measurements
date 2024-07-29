@@ -5,7 +5,7 @@
   - `nmtrain.ipynb`: Training on various sample sizes and sampling frequencies.
   - `fulltrain.ipynb`: Training on the full dataset.
   - `resultsv/` is required for training, while final models are saved in `bestnet/`.
-  - `vis.ipynb`: Visualizes final results, including fit plots and multidimensional scaling plot.
+  - `result.ipynb`: Visualizes final results, including fit plots and multidimensional scaling plot.
   
 
 
@@ -43,6 +43,6 @@ Ensure that you configure the nocuda variable as per your computational resource
 
 4. The finalized models are saved in the `bestnet/` directory.
 
-5. For visualization, please run `vis.ipynb`.
+5. For visualization, please run `result.ipynb`.
 
 

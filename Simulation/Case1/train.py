@@ -26,6 +26,7 @@ import gc
 from functools import partial
 from pandarallel import pandarallel
 import time
+import shutil
 
 def get_gpu_memory(device_id):
     try:
@@ -425,7 +426,6 @@ def onedim(n_train, m_train, seed, datapath, nocuda):
         lr = 0.002
 
     # mean_onedim_fun1_vec = np.vectorize(mean_onedim_fun1)
-    w = math.ceil(math.pow(n_train*m_train, 0.214) * 5)
 
     args = Args(lr=lr, wide=50, depth = 2, batch_size= batch_size, n_train=n_train, m_train=m_train)
     GPUstrain(x=x,y=y,x_valid = x_valid,y_valid=y_valid,x_test=x_test, y_test=y_test, args=args,seed = seed2, nocuda = nocuda)
@@ -484,20 +484,20 @@ def onedim(n_train, m_train, seed, datapath, nocuda):
 
 
 
-n_vector = [50,100,200,300,400] 
-m_vector = [1,2,3,5,8,10,12,15,20,25,30,40,50,60,80] 
+n_vector = [100,200,300,400]
+m_vector = [1,2,3,5,8,10,12,15,20,25,30,40,50,60,80]
 ind_matrix = [[n_vector[i], m_vector[j]] for i in range(len(n_vector)) for j in range(len(m_vector))]
 
 
 n_repeat = 50
 if __name__ == '__main__': 
-    for ij in range(len(ind_matrix)): 
+    for ij in range(len(ind_matrix)):
         i = ind_matrix[ij][0] 
         j = ind_matrix[ij][1] 
-        nocuda = 9 ## comment code " os.environ["CUDA_VISIBLE_DEVICES"] = "0" ", then you can let nocuda = 0 or 1
-        nproc = 5
+        nocuda = 9
+        nproc = 1
         multiprocessing.set_start_method('forkserver', force=True) 
-
+        
         n_list = [i for _ in range(n_repeat)] 
         m_list = [j for _ in range(n_repeat)] 
         datapath = ["./Simulation/Case1/data/data" for _ in range(n_repeat)] 
@@ -510,3 +510,6 @@ if __name__ == '__main__':
         np.save("./Simulation/Case1/res/res"+str(i)+"m"+str(j)+".npy", nnres) 
         print(i,j) 
         print("is ok") 
+        shutil.rmtree("./Simulation/resultsv")
+        os.mkdir("./Simulation/resultsv")
+

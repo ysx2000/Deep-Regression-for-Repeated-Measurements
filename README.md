@@ -6,41 +6,46 @@ It is structured into two main directories: `Simulation` and `RealData`.
 ## Directory Structure
 - 📂 **.**
   - 📂 **Simulation**
-    - 📂 **case1** ... **case6**
+    - 📂 **Case1**, **Case2**, **Case3**, **Case4/10d**, **Case4/20d**, **Case4/30d**, **CaseS1**, **CaseS2**, **CaseS3**
       - 📜 `data.py`
       - 📜 `train.py`
+      - 📜 `localinear.py`
+      - 📜 `RKHS.py`
+      - 📜 `spline.py`
       - 📂 **data**
       - 📂 **res**
     - 📂 **resultsv**
-    - 📜 `plot.ipynb`
+    - 📜 `result.ipynb`
   - 📂 **RealData**
     - 📂 **Airline**
       - 📜 `process.r`
       - 📜 `nmtrain.ipynb`
       - 📜 `fulltrain.ipynb`
-      - 📜 `vis.ipynb`
+      - 📜 `result.ipynb`
       - 📂 **data**
       - 📂 **resultsv**
       - 📂 **bestnet**
-    - 📂 **Argo**
-      - 📜 `process.r`
-      - 📜 `nmtrain.ipynb`
-      - 📜 `fulltrain.ipynb`
+    - 📂 **PM2.5**
+      - 📜 `process.ipynb`
+      - 📜 `train.ipynb`
+      - 📜 `AM&SIM.Rmd`
       - 📂 **data**
       - 📂 **resultsv**
-      - 📂 **bestnet**
-     
-  
+
 ## Description
 ### Simulation
 
-- **Cases (1-6)**: Each `Case` directory corresponds to one of the 6 simulations from the article:
+- **Cases (1-3), Case4 (10d-30d) and Supplementary Cases (S1-S3)**: Each `Case` directory corresponds to one of the simulations from the paper:
   - `data.py`: Script for data generation.
-  - `train.py`: Script for model training.
+  - `train.py`: Trains DNN estimators.
+  - `localinear.py`: Trains local linear estimators.
+  - `RKHS.py`: Trains RKHS estimators.
+  - `spline.py`: Trains regression spline estimators for examples with $d\leq 5$.
   - `data/`: Stores generated data.
   - `res/`: Stores training results.
 
-- **plot.ipynb**: Visualizes final results from the simulations.
+- **result.ipynb**: Visualizes and summarizes final results from the simulations.
+- **resultsv/**: Stores intermediate results during the training process.
 
 ### Real Data Analyses
 
@@ -49,14 +54,13 @@ It is structured into two main directories: `Simulation` and `RealData`.
   - `nmtrain.ipynb`: Training on various sample sizes and sampling frequencies.
   - `fulltrain.ipynb`: Training on the full dataset.
   - `resultsv/` is required for training, while final models are saved in `bestnet/`.
-  - `vis.ipynb`: Visualizes final results, including fit plots and multidimensional scaling plot.
+  - `result.ipynb`: Visualizes final results, including fit plots and multidimensional scaling plot.
   
-- **Argo**:
-  - `process.r`: Data download and processing script, which would be saved in `data/`. 
-  - `nmtrain.ipynb`: Training on various sample sizes and sampling frequencies with visualization of estimations.
-  - `fulltrain.ipynb`: Training on the full dataset with visualization of the estimation.
-  - `resultsv/` is required for training, while final models are saved in `bestnet/`.
-
+- **PM2.5**:
+  - `process.ipynb`: Preprocesses the data and saves the processed data as `.csv` files in the `data/` directory.
+  - `train.ipynb`: Trains DNN estimator, linear regression, RKHS regression, and local linear regression models.
+  - `AM&SIM.Rmd`: Trains additive model and single index model.
+  - `data/`: Stores raw and processed data.
 
 ## How to Use
 
@@ -71,18 +75,18 @@ In the training scripts located within the `Simulation` directory or `RealData` 
   ```python
   import os
   os.environ["CUDA_VISIBLE_DEVICES"] = "i"  ## i = 0 or 1
-  
+
 Note: Ensure that these lines are commented out if you’re using any nocuda value other than 9, to prevent any potential issues or errors during execution.
 
 Ensure that you configure the nocuda variable as per your computational resource availability and requirements before initiating the training scripts.
 
 ### Simulation
 
-1. Navigate to the desired `case` directory within the `Simulation` folder.
+1. Navigate to the desired `Case` directory within the `Simulation` folder.
 2. Run `data.py` to generate the required data.
-3. Execute `train.py` to start the model training process. 
+3. Execute `train.py`, `localinear.py`, `RKHS.py`, and `spline.py` to train the respective estimator results. 
 4. After training, results will be saved in the `res/` directory.
-5. For visualizing the results, launch Jupyter and use `plot.ipynb`.
+5. For visualizing the results, launch Jupyter and use `result.ipynb`.
 
 
 ### Real Data Analyses 
@@ -100,22 +104,20 @@ Ensure that you configure the nocuda variable as per your computational resource
 
 4. The finalized models are saved in the `bestnet/` directory.
 
-5. For visualization, please run `vis.ipynb`.
+5. For visualization, please run `result.ipynb`.
 
 
+#### PM2.5
 
+1. Navigate to the `PM2.5` directory under `RealData`.
 
-#### Argo
-
-1. Navigate to the `Argo` directory under `RealData`.
-
-2. Process the data using the provided R script: `process.r`. The data processing script `process.r` makes use of the [`argoFloats`](https://cran.r-project.org/web/packages/argoFloats/index.html) R package. The `argoFloats` package provides a suite of functions for obtaining and working with Argo oceanographic measurement data. This includes capabilities for downloading, plotting, and managing Argo float datasets, which are pivotal for ocean and climate studies. For more information, please see [here](https://github.com/ArgoCanada/argoFloats). 
-The package accesses data primarily from the [Argo Data](https://data-argo.ifremer.fr), you might also explore and directly download data from the [Argo Data website](https://data-argo.ifremer.fr) as per your specific requirements.
-For a straightforward and user-friendly experience, the results generated by the `process.r` script are conveniently stored in the respective `data` folder. Hence, you can skip this step to save time.
+2. Process the data using `process.ipynb`. The dataset is publicly available in the paper by Zheng, X. & Chen, S. X. (2024) and can be downloaded from [this repository](https://github.com/FlyHighest/Dynamic-Synthetic-Control). The `data` folder has contained both the raw data and the preprocessed data. You can directly use the preprocessed data, or you can also redownload the data and use the provided code to preprocess.
+   - Zheng, X. & Chen, S. X. (2024), ‘Dynamic synthetic control method for evaluating treatment effects in auto-regressive processes’, Journal of the Royal Statistical Society Series B: Statistical Methodology 86(1), 155–176.
 
 3. Launch Jupyter Notebook and open the training notebooks:
-- For training on various sample sizes and sampling frequencies and seeing the result, please run `nmtrain.ipynb`.
+   - For training DNN estimator, linear regression, RKHS regression, and local linear regression and seeing the results, use `train.ipynb`.
 
-- For training on the full dataset and seeing the result, please run `fulltrain.ipynb`.
+4. For training additive model and single index model, use `AM&SIM.Rmd`. The additive model training uses the R package ‘PLSiMCpp’ (Wu et al. 2022), and the single index model training uses the R package ‘gam’ (Hastie 2023). The references for these packages are:
+   - [Wu, S., Zhang, Q., Li, Z. & Liang, H. (2022), PLSiMCpp: Methods for Partial Linear Single Index Model. R package version 1.0.4.](https://cran.r-project.org/web/packages/PLSiMCpp/index.html)
+   - [Hastie, T. (2023), gam: Generalized Additive Models. R package version 1.22-3.](https://cran.r-project.org/web/packages/gam/index.html)
 
-4. You can find the finalized models in the `bestnet/` directory.

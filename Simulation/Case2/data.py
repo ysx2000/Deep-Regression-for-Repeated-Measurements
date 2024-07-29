@@ -5,9 +5,9 @@ import math
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np 
-import torch           
-import torch.nn as nn   
-import torch.nn.functional as F   
+import torch             # torch基础库
+import torch.nn as nn    # torch神经网络库
+import torch.nn.functional as F    # torch神经网络库 
 import pandas as pd
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
@@ -27,10 +27,11 @@ from pandarallel import pandarallel
 
 
 
-def mean_onedim_fun1(x):
-    return ( x[0]*x[0]*x[1]*x[1]*x[1] + math.log(1+x[2]) + math.sqrt(1+x[3]*x[4]) + math.exp(x[4]/2))
-
-
+def mean_onedim_fun1(x, a = 0.3, b = 1.6):
+    ksize = 20
+    i1 = np.arange(ksize)
+    reswei = np.sum( np.power((a), i1) * np.cos(np.multiply(np.power(b,i1),2*math.pi* x[0])) + np.power((a), i1) * np.cos(np.multiply(np.power(b,i1), math.pi*x[1])) + np.power((a), i1) * np.cos(np.multiply(np.power(b,i1), (2/3)*math.pi*x[2])) + np.power((a), i1) * np.cos(np.multiply(np.power(b,i1), (2/4)*math.pi*x[3]))+ np.power((a), i1) * np.cos(np.multiply(np.power(b,i1), (2/5)*math.pi*x[4])) )
+    return reswei
 
 
 def generate_onedim_fun1(n,m): 
@@ -51,7 +52,7 @@ def generate_onedim_fun1(n,m):
         e = np.random.normal(0, 1, size = 20) * 0.1 
         e2 = np.random.normal(0, 1, size = 20) * 0.1 
         for k in range(20): 
-            yi = yi + (a[k] * np.sin((k+1) * math.pi * x[i,:,0]) 
+            yi = yi +  (math.sqrt(3)/math.sqrt(x_dim)) * (a[k] * np.sin((k+1) * math.pi * x[i,:,0]) 
                        + b[k] * np.sin((k+1) * math.pi * x[i,:,1]) 
                        + c[k] * np.sin((k+1) * math.pi * x[i,:,2]) 
                        + d[k] * np.sin((k+1) * math.pi * x[i,:,3]) 
@@ -107,14 +108,12 @@ def savedata(seed):
 
 
 
-
-seedlist = list(range(100)) # This is just a number, from which the real seed is generated
-
+seedlist = list(range(50)) # This is just a number, from which the real seed is generated
 
 multiprocessing.set_start_method('forkserver', force=True)
 if __name__ == '__main__':
     seeds = list(seedlist)
-    nproc = 100 
+    nproc = 50 
     with multiprocessing.Pool(processes = nproc ) as pool: 
         pool.map(savedata, seedlist) 
 

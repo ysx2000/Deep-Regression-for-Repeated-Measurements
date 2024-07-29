@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0" ### Determine the GPU to be used. without commenting out this line of code, only nocuda = 9 can be selected later.
 import numpy as np
 import matplotlib.pyplot as plt
 import csaps
@@ -7,9 +7,9 @@ import math
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np 
-import torch             # torch基础库
-import torch.nn as nn    # torch神经网络库
-import torch.nn.functional as F    # torch神经网络库 
+import torch             
+import torch.nn as nn    
+import torch.nn.functional as F    
 import pandas as pd
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
@@ -26,6 +26,7 @@ import gc
 from functools import partial
 from pandarallel import pandarallel
 import time
+import shutil
 
 def get_gpu_memory(device_id):
     try:
@@ -100,7 +101,7 @@ class EarlyStopping():
         if self.verbose:
             print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {valid_loss:.6f}).  Saving model ...') 
         # path = os.path.join(self.save_path, 'best'+ args.biaoji +'network.pth') 
-        torch.save(model.state_dict(), os.path.join(self.save_path, 'best' + str(seed) + args.biaoji +'network.pth') )	# 这里会存储迄今最优模型的参数 
+        torch.save(model.state_dict(), os.path.join(self.save_path, 'best' + str(seed) + args.biaoji +'network.pth') )
         torch.save(train_loss, os.path.join(self.save_path, 'best'+ str(seed) + args.biaoji +'train_loss.pth')) 
         torch.save(valid_loss, os.path.join(self.save_path, 'best'+ str(seed) + args.biaoji +'valid_loss.pth')) 
         torch.save(test_error, os.path.join(self.save_path, 'best'+ str(seed) + args.biaoji +'test_loss.pth')) 
@@ -110,29 +111,16 @@ class EarlyStopping():
 
 
 class Dataset_repeatedmeasurement(Dataset): 
-    def __init__(self, x, y) -> None:  #括号里是要赋予的
+    def __init__(self, x, y) -> None:  
         super().__init__()
-    #    assert np.allclose([x.shape[0],x.shape[1]],[y.shape[0],y.shape[1]]), "Error! x and y have different shape"
         self.x = x 
         self.y = y 
-        # self.nsubject = x.shape[0]
-        # self.mobserv = x.shape[1]
-        # self.dimension = x.shape[2]
+
 
     def __len__(self) -> int: 
-    #    aaa = self.x.shape[0]*self.x.shape[1] 
-    #    aaa = self.x.shape[0]
         return len(self.x) 
     
     def __getitem__(self, index): 
-        # a = self.x.shape[0] 
-        # b = self.x.shape[1] 
-        # a2 = index // b 
-        # b2 = index % b 
-        # return {
-        #     "x" : self.x[a2][b2], 
-        #     "y" : self.y[a2][b2]
-        # }
         return {
             "x" : self.x[index], 
             "y" : self.y[index]
@@ -273,7 +261,6 @@ class happynet(nn.Module):
         else: 
             print("Error! the depth is not in 3-10")
     
-    #定义前向运算
     def forward(self, x):
         k = self.net(x)
         return k
@@ -285,9 +272,6 @@ class happynet(nn.Module):
 def GPUstrain(x, y, x_valid, y_valid, x_test, y_test,args,seed,nocuda): # batch_size, nepoch=200): 
 
     x_dim = x.shape[2]
-    # device = get_free_gpu()
-    # device = torch.device("cpu")
-    #device = torch.device("cuda:1")
 
     if nocuda == 0:
         device = torch.device("cuda:0")
@@ -305,10 +289,6 @@ def GPUstrain(x, y, x_valid, y_valid, x_test, y_test,args,seed,nocuda): # batch_
     nepoch = args.nepoch
     
     optimizer=torch.optim.Adam(net.parameters(), lr=args.lr, betas=(0.90, 0.999), eps=1e-8, weight_decay=0., amsgrad=False,) 
-    # lr(Learning Rate) 
-    # betas (Tuple[float, float], 可选) – 用于计算梯度以及梯度平方的运行平均值的系数（默认：0.9，0.999）
-    # eps (float, 可选) – 为了增加数值计算的稳定性而加到分母里的项（默认：1e-8）
-    # weight_decay (float, 可选) – 权重衰减（L2惩罚）（默认: 0）
     loss_func=nn.MSELoss() 
     train_epochs_loss = [] 
     valid_epochs_loss = [] 
@@ -325,13 +305,6 @@ def GPUstrain(x, y, x_valid, y_valid, x_test, y_test,args,seed,nocuda): # batch_
     x_valid=torch.from_numpy(x_valid).float().to(device) 
     y_valid=torch.from_numpy(y_valid).float().to(device) 
 
-    # x_test=torch.from_numpy(x_test).float()
-    # yg = [] 
-    # for xij in x_test:
-    #    yg.append(real_mean(xij))
-    # x_test = x_test.view(-1,1,1).to(device)
-    # yg =torch.tensor(yg).view(-1).float().to(device) 
-    ### yg = net(x_test.view(-1,1,1)).view(-1).float()
     x_test = torch.from_numpy(x_test).float().view(-1,1,x_dim).to(device)
     y_test = torch.from_numpy(y_test).float().view(-1).to(device) 
 
@@ -353,15 +326,11 @@ def GPUstrain(x, y, x_valid, y_valid, x_test, y_test,args,seed,nocuda): # batch_
 
             x_train=torch.Tensor(x_train).float().view(-1,1,x_dim).to(device) 
             y_train=torch.Tensor(y_train).float().to(device) 
-
             outputs=net(x_train) 
-
             loss=loss_func(outputs.view(-1),y_train.view(-1).float())
-
-            optimizer.zero_grad() # 把梯度置零，也就是把loss关于weight的导数变成0，即将梯度初始化为零
-
-            loss.backward() # 对loss进行反向传播
-            optimizer.step() # 再对梯度进行优化，更新所有参数
+            optimizer.zero_grad() 
+            loss.backward() 
+            optimizer.step() 
             
             
             train_epoch_loss.append(loss.item())
@@ -386,7 +355,7 @@ def GPUstrain(x, y, x_valid, y_valid, x_test, y_test,args,seed,nocuda): # batch_
 
         print("epoch = {}, training loss = {}, validation loss = {}, test error = {}".format(epoch, np.average(train_epoch_loss), loss_valid, error_test))
 
-        if epoch > 10:
+        if epoch > 10 or args.n_train*args.m_train > 200:
             early_stopping(net, np.average(train_epoch_loss), loss_valid, error_test,args,seed)
             if early_stopping.early_stop: 
                 print("Early stopping")
@@ -457,7 +426,6 @@ def onedim(n_train, m_train, seed, datapath, nocuda):
         lr = 0.002
 
     # mean_onedim_fun1_vec = np.vectorize(mean_onedim_fun1)
-    w = math.ceil(math.pow(n_train*m_train, 0.214) * 5)
 
     args = Args(lr=lr, wide=50, depth = 2, batch_size= batch_size, n_train=n_train, m_train=m_train)
     GPUstrain(x=x,y=y,x_valid = x_valid,y_valid=y_valid,x_test=x_test, y_test=y_test, args=args,seed = seed2, nocuda = nocuda)
@@ -516,20 +484,20 @@ def onedim(n_train, m_train, seed, datapath, nocuda):
 
 
 
-n_vector = [50,100,200,300,400] 
-m_vector = [1,2,3,5,8,10,12,15,20,25,30,40,50,60,80] 
+n_vector = [100,200,300,400]
+m_vector = [1,2,3,5,8,10,12,15,20,25,30,40,50,60,80]
 ind_matrix = [[n_vector[i], m_vector[j]] for i in range(len(n_vector)) for j in range(len(m_vector))]
 
 
 n_repeat = 50
 if __name__ == '__main__': 
-    for ij in range(len(ind_matrix)): 
+    for ij in range(len(ind_matrix)):
         i = ind_matrix[ij][0] 
         j = ind_matrix[ij][1] 
         nocuda = 9
-        nproc = 5
+        nproc = 1
         multiprocessing.set_start_method('forkserver', force=True) 
-
+        
         n_list = [i for _ in range(n_repeat)] 
         m_list = [j for _ in range(n_repeat)] 
         datapath = ["./Simulation/Case3/data/data" for _ in range(n_repeat)] 
@@ -539,6 +507,9 @@ if __name__ == '__main__':
         with multiprocessing.Pool(processes = nproc ) as pool: 
             nnres = pool.starmap(onedim, params) 
             nnres = np.stack(nnres, axis=0) 
-        np.save("./Simulation/Case3/res3/res"+str(i)+"m"+str(j)+".npy", nnres) 
+        np.save("./Simulation/Case3/res/res"+str(i)+"m"+str(j)+".npy", nnres) 
         print(i,j) 
         print("is ok") 
+        shutil.rmtree("./Simulation/resultsv")
+        os.mkdir("./Simulation/resultsv")
+
