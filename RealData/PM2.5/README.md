@@ -35,7 +35,7 @@ Ensure that you configure the nocuda variable as per your computational resource
 1. Navigate to the `PM2.5` directory under `RealData`.
 
 2. Process the data using `process.ipynb`. The dataset is publicly available in the paper by Zheng, X. & Chen, S. X. (2024) and can be downloaded from [this repository](https://github.com/FlyHighest/Dynamic-Synthetic-Control). The `data` folder has contained both the raw data and the preprocessed data. You can directly use the preprocessed data, or you can also redownload the data and use the provided code to preprocess.
-   - Zheng, X. & Chen, S. X. (2024), ‘Dynamic synthetic control method for evaluating treatment effects in auto-regressive processes’, Journal of the Royal Statistical Society Series B: Statistical Methodology 86(1), 155–176.
+    - [Zheng, X. & Chen, S. X. (2024), ‘Dynamic synthetic control method for evaluating treatment effects in auto-regressive processes’, Journal of the Royal Statistical Society Series B: Statistical Methodology 86(1), 155–176.](https://academic.oup.com/jrsssb/article-abstract/86/1/155/7331057)
 
 3. Launch Jupyter Notebook and open the training notebooks:
    - For training DNN estimator, linear regression, RKHS regression, and local linear regression and seeing the results, use `train.ipynb`.
