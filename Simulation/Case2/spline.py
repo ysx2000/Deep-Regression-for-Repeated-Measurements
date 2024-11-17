@@ -1,31 +1,15 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import csaps
 import math
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np 
-import torch             # torch基础库
-import torch.nn as nn    # torch神经网络库
-import torch.nn.functional as F    # torch神经网络库 
-import pandas as pd
-from tqdm import tqdm
-from torch.utils.data import DataLoader, Dataset
-from PIL import Image 
-import imageio 
-import os, gc
-import random 
-import pynvml
 import multiprocessing
-import itertools
-import subprocess
-import gc
-from functools import partial
 import time
 from scipy.interpolate import BSpline
 
 
 def concat_phi(phi1,phi2,phi3,phi4,phi5):
+    """
+    Concatenate and multiply elements of five input matrices to create a higher-dimensional matrix.
+    It is used to caculate the tensor spline.
+    """
     size1,size2 = phi1.shape
     ret = np.ndarray((size1,size2**5))
     for i in range(size1):
@@ -38,6 +22,22 @@ def concat_phi(phi1,phi2,phi3,phi4,phi5):
     return ret
 
 def regression_spline_train(n_train, m_train, seed, datapath, splinenumber = np.arange(2,7)):
+    """
+    Train a regression spline model using B-splines, optimizing over the number of splines 
+    to fit the data and selecting the best model through validation.
+    
+    Parameters:
+    n_train: Sample size.
+    m_train: Sampling frequency.
+    seed: Seed for data loading, used to identify the data file.
+    datapath: Path to the data file.
+    splinenumber: Array of possible numbers of splines to test.
+    
+    Returns:
+    tuple: A tuple containing:
+        - valid_loss: Array with validation losses and corresponding spline numbers.
+        - test_error_result: Mean squared error on the test data using the optimal spline number.
+    """
     print(str(seed)+"kaishi")
     o = 3
     n_train = n_train
@@ -64,7 +64,6 @@ def regression_spline_train(n_train, m_train, seed, datapath, splinenumber = np.
     y1 = y.reshape(-1)
     x_valid = x_valid.reshape(-1,x_dim)
     y_valid = y_valid.reshape(-1)
-    # print(x_test.shape[0])
 
     print("data is realy")
 
@@ -114,7 +113,7 @@ def regression_spline_train(n_train, m_train, seed, datapath, splinenumber = np.
         except: 
             pass
         T4 = time.time()
-        print('程序运行时间:%s毫秒' % ((T4 - T3)*1000))
+        print('time: %s ms' % ((T4 - T3)*1000))
         ## test
     indopth = valid_loss[:,0].argmin()
     k = round(np.array(valid_loss)[indopth,1])
@@ -146,7 +145,7 @@ def regression_spline_train(n_train, m_train, seed, datapath, splinenumber = np.
     test_error_result = np.mean(np.square(y_test-Y_fit))
 
     T2 =time.time()
-    print("splinenumber:"+str(k)+'程序运行时间:%s毫秒' % ((T2 - T1)*1000))
+    print("splinenumber:"+str(k)+'time: %s ms' % ((T2 - T1)*1000))
     return valid_loss,test_error_result
 
 
@@ -158,7 +157,7 @@ ind_matrix = [[n_vector[i], m_vector[j]] for j in range(len(m_vector)) for i in 
 
 n_repeat = 50 
 if __name__ == '__main__': 
-    for ij in range(len(ind_matrix)):  ##################################
+    for ij in range(len(ind_matrix)): 
         i = ind_matrix[ij][0] 
         j = ind_matrix[ij][1] 
         print(i,j)

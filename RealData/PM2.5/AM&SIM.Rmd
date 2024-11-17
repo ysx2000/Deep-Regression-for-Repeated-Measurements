@@ -3,17 +3,16 @@ title: "Additive Model and Single Index Model"
 output: html_document
 ---
 
-Addtive Model: 
+Additive Model: 
 ```{r}
+## load data
 x_train <- read.csv('./data/x_train.csv')
 x_valid <- read.csv('./data/x_valid.csv')
 x_test <- read.csv('./data/x_test.csv')
 y_train <- read.csv('./data/y_train.csv')
 y_valid <- read.csv('./data/y_valid.csv')
 y_test <- read.csv('./data/y_test.csv')
-```
 
-```{r}
 x_train$pm2p5 <- y_train$pm25
 x_valid$pm2p5 <- y_valid$pm25
 x_test$pm2p5 <- y_test$pm25
@@ -24,13 +23,14 @@ if ('mgcv' %in% loadedNamespaces()) {detach("package:mgcv", unload = TRUE)}
 library(gam)
 lamset <- seq(0,1,0.05)[-1]
 validerr_gam <- length(lamset)
+## Train and validate the model for each lambda in lamset 
 for (i in 1:length(lamset)) {
   lambda = lamset[i]
   model <- gam(pm2p5 ~ s(so2,spar = lambda) +s(no2,spar = lambda) +s(o3,spar = lambda)+s(co,spar = lambda)+s(WSPM,spar = lambda)+s(humi,spar = lambda)+s(dewp,spar = lambda)+s(pres,spar = lambda),data = x_train)
   a = (y_valid - predict(model,type="response",newdata=x_valid))^2
   validerr_gam[i] <- mean(a$pm25)
 }
-
+# Choose the lambda with minimum validation error 
 lambda <- lamset[which.min(validerr_gam)]
 model_gam <- gam(pm2p5 ~ s(so2,spar = lambda)
              +s(no2,spar = lambda)
@@ -51,8 +51,8 @@ Single index model
 ```{r}
 library(PLSiMCpp)
 hset <- seq(0,1,0.05)[-1]
-# hset <- c(0.15,0.2,1)
 validerr_sim <- length(hset)
+# Train and validate the model for each h in hset
 for (i in 1:length(hset)) {
   h = hset[i]
   model <-  plsim.est(xdat=NULL,zdat=x_train[,1:8],ydat=y_train,h=h)
@@ -60,10 +60,10 @@ for (i in 1:length(hset)) {
   a = (y_valid - predict(model, x_test = NULL, z_test=as.matrix(x_valid[,1:8])))^2
   validerr_sim[i] <- mean(a$pm25)
 }
-
+# Choose the h with minimum validation error
 h <- hset[which.min(validerr_sim)]
 model_sim <-  plsim.est(xdat=NULL,zdat=x_train[,1:8],ydat=y_train,h=h)
-
+# Calculate test error
 a = (y_test - predict(model_sim, x_test = NULL, z_test=as.matrix(x_test[,1:8])))^2
 testerr_sim <- mean(a$pm25)
 testerr_sim

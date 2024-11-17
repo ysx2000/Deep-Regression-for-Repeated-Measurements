@@ -1,34 +1,25 @@
-import os
+import os,gc
 os.environ["CUDA_VISIBLE_DEVICES"] = "0" ### Determine the GPU to be used. without commenting out this line of code, only nocuda = 9 can be selected later.
 import numpy as np
-import matplotlib.pyplot as plt
-import csaps
 import math
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np 
 import torch             
-import torch.nn as nn    
-import torch.nn.functional as F    
-import pandas as pd
-from tqdm import tqdm
+import torch.nn as nn     
 from torch.utils.data import DataLoader, Dataset
-from PIL import Image 
-import imageio 
 from early_stopping import EarlyStopping
-import os, gc
 import random 
-import pynvml
 import multiprocessing
-import itertools
 import subprocess
-import gc
-from functools import partial
-from pandarallel import pandarallel
-import time
 import shutil
 
 def get_gpu_memory(device_id):
+    """
+    Retrieve the memory usage of a specific GPU.
+
+    Parameters:
+    device_id: ID of the GPU device to query.
+
+    Returns: A tuple (memory_used, memory_total) in MB, or (None, None) if an error occurs.
+    """
     try:
         output = subprocess.check_output(["nvidia-smi", "--id={}".format(device_id), "--query-gpu=memory.used,memory.total", "--format=csv,nounits,noheader"])
         memory_used, memory_total = map(int, output.decode("utf-8").strip().split("\n")[0].split(","))
@@ -38,6 +29,12 @@ def get_gpu_memory(device_id):
         return None, None
 
 def get_free_gpu():
+    """
+    Find the GPU with the most available memory and return its device ID.
+    
+    Returns:
+    torch.device or None: The device with the most free memory if available, otherwise None.
+    """
     device_ids = list(range(torch.cuda.device_count()))
     memory_usages = []
     for device_id in device_ids:
@@ -48,7 +45,6 @@ def get_free_gpu():
         print(memory_total,memory_usages)
     if len(memory_usages) > 0:
         best_device_id = sorted(memory_usages, key=lambda x: x[1])[len(device_ids)-1][0]
-        # print(sorted(memory_usages, key=lambda x: x[1]))
         device = torch.device(f"cuda:{best_device_id}")
         return device
     else:
@@ -56,6 +52,20 @@ def get_free_gpu():
 
 
 class Args:
+    """
+    A class to store tuning parameters for model training.
+    
+    Attributes:
+    batch_size: batch size.
+    lr: Learning rate for the optimizer.
+    nepoch: Total number of epochs for training.
+    patience: Number of epochs to wait for improvement before stopping early.
+    wide: Width of the model, representing the number of units in each layer.
+    depth: Depth of the model, representing the number of layers.
+    n_train (int): Sample size.
+    m_train (int): Sampling frequency.
+    biaoji (str): A unique identifier to aovid confusion.
+    """
     def __init__(self, batch_size=10, lr =0.001, nepoch = 200, patience = 10, wide = 100, depth = 5, n_train=1, m_train=1) -> None:
         self.batch_size = batch_size
         self.lr = lr
@@ -69,6 +79,19 @@ class Args:
 
 
 class EarlyStopping():
+    """
+    Early stopping utility to halt training when validation loss does not improve.
+    
+    Attributes:
+    save_path: Path where model checkpoints are saved.
+    patience: Number of epochs to wait for improvement before stopping.
+    verbose: If True, prints validation loss improvements.
+    delta: Minimum change in validation loss to qualify as an improvement.
+    counter: Tracks epochs without improvement.
+    best_score: Best score achieved on validation loss (initialized to None).
+    early_stop: Flag to indicate if training should be stopped.
+    val_loss_min: Tracks the minimum validation loss seen so far.
+    """
     def __init__(self, save_path, args, verbose=False, delta=0):
         self.save_path = save_path 
         self.patience = args.patience 
@@ -80,7 +103,17 @@ class EarlyStopping():
         self.delta = delta 
 
     def __call__(self, model, train_loss, valid_loss, test_error, args, seed):
-
+        """
+        Check if validation loss has improved and update early stopping criteria.
+        
+        Parameters:
+        model (torch.nn.Module): The model being trained.
+        train_loss: Training loss of the current epoch.
+        valid_loss: Validation loss of the current epoch.
+        test_error: Test error of the current epoch.
+        args (Args): Arguments class containing model parameters and settings.
+        seed (int): Seed for the current training run, used for unique file naming.
+        """
         score = -valid_loss 
 
         if self.best_score is None: 
@@ -100,7 +133,6 @@ class EarlyStopping():
         '''Saves model when validation loss decrease.'''
         if self.verbose:
             print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {valid_loss:.6f}).  Saving model ...') 
-        # path = os.path.join(self.save_path, 'best'+ args.biaoji +'network.pth') 
         torch.save(model.state_dict(), os.path.join(self.save_path, 'best' + str(seed) + args.biaoji +'network.pth') )
         torch.save(train_loss, os.path.join(self.save_path, 'best'+ str(seed) + args.biaoji +'train_loss.pth')) 
         torch.save(valid_loss, os.path.join(self.save_path, 'best'+ str(seed) + args.biaoji +'valid_loss.pth')) 
@@ -111,16 +143,42 @@ class EarlyStopping():
 
 
 class Dataset_repeatedmeasurement(Dataset): 
+    """
+    A custom dataset class for handling repeated measurement data.
+    
+    Attributes:
+    x: Input data of features.
+    y: Target labels corresponding to the input data.
+    
+    Methods:
+    __len__: Returns the total number of samples in the dataset.
+    __getitem__: Retrieves a single sample, returning a dictionary with 'x' and 'y' keys.
+    """
     def __init__(self, x, y) -> None:  
+        """
+        Initialize the dataset with input data and corresponding labels.
+        """
         super().__init__()
         self.x = x 
         self.y = y 
 
 
     def __len__(self) -> int: 
+        """
+        Return the number of samples in the dataset.
+        """
         return len(self.x) 
     
     def __getitem__(self, index): 
+        """
+        Retrieve a sample from the dataset at the specified index.
+        
+        Parameters:
+        index (int): Index of the sample to retrieve.
+        
+        Returns:
+        dict: A dictionary with keys 'x' and 'y', representing the input and label.
+        """
         return {
             "x" : self.x[index], 
             "y" : self.y[index]
@@ -130,6 +188,19 @@ class Dataset_repeatedmeasurement(Dataset):
 
 
 class happynet(nn.Module):
+    """
+    A flexible neural network with a customizable depth.
+    
+    Parameters:
+    n_feature: Dimension of input.
+    n_hidden: Number of units in each hidden layer.
+    n_output: Number of output units.
+    n_layer: the number of layers (supports 3 to 10 layers). 
+             (n_layer-1) hidden layers
+    
+    Methods:
+    forward(x): Forward pass through the network.
+    """
     def __init__(self, n_feature, n_hidden, n_output, n_layer): 
         super().__init__()
         if n_layer == 3: 
@@ -269,7 +340,24 @@ class happynet(nn.Module):
 
 
 
-def GPUstrain(x, y, x_valid, y_valid, x_test, y_test,args,seed,nocuda): # batch_size, nepoch=200): 
+def GPUstrain(x, y, x_valid, y_valid, x_test, y_test,args,seed,nocuda): 
+    """
+    Train a neural network on GPU or CPU based on the given configuration, using early stopping.
+    
+    Parameters:
+    x: Training input data.
+    y: Training target data.
+    x_valid: Validation input data.
+    y_valid: Validation target data.
+    x_test: Test input data.
+    y_test: Test target data.
+    args: Arguments object containing hyperparameters.
+    seed: Seed and identifier.
+    nocuda (int): Flag to select device; options include specific GPU IDs, CPU, or auto-selection.
+    
+    Returns:
+    tuple: (trained network, list of training losses, list of validation losses, list of test errors)
+    """
 
     x_dim = x.shape[2]
 
@@ -373,6 +461,19 @@ def GPUstrain(x, y, x_valid, y_valid, x_test, y_test,args,seed,nocuda): # batch_
     
 
 def onedim(n_train, m_train, seed, datapath, nocuda):
+    """
+    Train models with different configurations and return validation and test losses.
+    
+    Parameters:
+    n_train: Number of training samples.
+    m_train: Number of observations per training sample.
+    seed: Seed and identifier.
+    datapath: Path to the dataset file.
+    nocuda: Flag for selecting device (GPU/CPU) and specific GPU.
+
+    Returns:
+    ndarray: Concatenated array of validation and test losses for different model configurations.
+    """
 
     seed2 = ((seed+50) * 20000331 )% 2**31
     torch.manual_seed(seed2) 
@@ -384,7 +485,6 @@ def onedim(n_train, m_train, seed, datapath, nocuda):
     m_train = m_train
     n_vaild = math.ceil(n_train*0.25)
     m_valid = m_train
-    # ./720victory/holder/wei3d/data/data
     aa = np.load(datapath+str(seed)+".npy",allow_pickle=True).item()
 
     x_test = aa["x_test"]
@@ -424,8 +524,6 @@ def onedim(n_train, m_train, seed, datapath, nocuda):
     else:
         batch_size= 1024
         lr = 0.002
-
-    # mean_onedim_fun1_vec = np.vectorize(mean_onedim_fun1)
 
     args = Args(lr=lr, wide=50, depth = 2, batch_size= batch_size, n_train=n_train, m_train=m_train)
     GPUstrain(x=x,y=y,x_valid = x_valid,y_valid=y_valid,x_test=x_test, y_test=y_test, args=args,seed = seed2, nocuda = nocuda)
@@ -477,7 +575,7 @@ def onedim(n_train, m_train, seed, datapath, nocuda):
     b = np.expand_dims(b.cpu(), 0)
     c5 = np.r_[a,b,5]
 
-    p = np.r_[np.expand_dims(c0, 0),np.expand_dims(c1, 0),np.expand_dims(c2, 0),np.expand_dims(c3, 0),np.expand_dims(c4, 0),np.expand_dims(c5, 0)]#
+    p = np.r_[np.expand_dims(c0, 0),np.expand_dims(c1, 0),np.expand_dims(c2, 0),np.expand_dims(c3, 0),np.expand_dims(c4, 0),np.expand_dims(c5, 0)]
 
     return np.concatenate((p[0],p[1],p[2],p[3],p[4],p[5]))
 

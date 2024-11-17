@@ -1,31 +1,22 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import csaps
 import math
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np 
-import torch             # torch基础库
-import torch.nn as nn    # torch神经网络库
-import torch.nn.functional as F    # torch神经网络库 
-import pandas as pd
-from tqdm import tqdm
-from torch.utils.data import DataLoader, Dataset
-from PIL import Image 
-import imageio 
-import os, gc
-import random 
-import pynvml
 import multiprocessing
-import itertools
-import subprocess
-import gc
-from functools import partial
 import time
 
 
 
-def local_linear_estimator(x1, y1, x0, bandwidth): # x,y are training data, x0 is the new data
+def local_linear_estimator(x1, y1, x0, bandwidth): 
+    """
+    Perform a local linear regression to estimate the value at a new data point x0.
+    
+    Parameters:
+    x1: Training data x.
+    y1: Training data y.
+    x0: New data point for prediction.
+    bandwidth: Bandwidth parameter controlling the weighting decay with distance.
+    
+    Returns:The predicted value at x0 based on local linear regression.
+    """
     x_dim = x1.shape[1] 
     dx_aug = np.hstack((np.ones((x1.shape[0], 1)), x1-x0)) 
     distances = np.linalg.norm(x1-x0, axis=1) 
@@ -37,7 +28,22 @@ def local_linear_estimator(x1, y1, x0, bandwidth): # x,y are training data, x0 i
    
 
 def local_linear_train(n_train, m_train, seed, datapath, bandwidth_set=np.geomspace(5*10**(-3), 1, 8)):
-    print(str(seed)+"kaishi")
+    """
+    Train a local linear estimator using a training dataset, select the tuning parameter on validation data and evaluate on test data.
+    
+    Parameters:
+    n_train: Number of training samples.
+    m_train: Number of observations per training sample.
+    seed: Seed for data loading, used to identify the data file.
+    datapath: Path to the data file.
+    bandwidth_set: Array of bandwidth values to test for the local linear estimator.
+    
+    Returns:
+    tuple: A tuple containing:
+        - valid_loss: Array with validation losses and corresponding bandwidths.
+        - test_error_result: Mean squared error on the test data using the optimal bandwidth.
+    """
+    print(str(seed)+"start")
     n_train = n_train
     m_train = m_train
     n_vaild = math.ceil(n_train*0.25)
@@ -82,7 +88,6 @@ def local_linear_train(n_train, m_train, seed, datapath, bandwidth_set=np.geomsp
     hopt = np.array(valid_loss)[indopth,1]
     print("optimal bandwidth:"+ str(hopt))
     for i in range(x_test.shape[0]):
-            # i = i2*100+i3
         if(i%1000 == 0):
             print("test data:"+str(i))
         x0 = x_test[i,]
@@ -91,7 +96,7 @@ def local_linear_train(n_train, m_train, seed, datapath, bandwidth_set=np.geomsp
     test_error_result = np.mean(test_error)
 
     T2 =time.time()
-    print('程序运行时间:%s毫秒' % ((T2 - T1)*1000))
+    print('time:%s' % ((T2 - T1)*1000))
     return valid_loss,test_error_result
 
 

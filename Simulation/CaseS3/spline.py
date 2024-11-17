@@ -1,31 +1,15 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import csaps
 import math
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np 
-import torch             # torch基础库
-import torch.nn as nn    # torch神经网络库
-import torch.nn.functional as F    # torch神经网络库 
-import pandas as pd
-from tqdm import tqdm
-from torch.utils.data import DataLoader, Dataset
-from PIL import Image 
-import imageio 
-import os, gc
-import random 
-import pynvml
 import multiprocessing
-import itertools
-import subprocess
-import gc
-from functools import partial
 import time
 from scipy.interpolate import BSpline
 
 
 def concat_phi(phi1,phi2,phi3,phi4,phi5):
+    """
+    Concatenate and multiply elements of five input matrices to create a higher-dimensional matrix.
+    It is used to caculate the tensor spline.
+    """
     size1,size2 = phi1.shape
     ret = np.ndarray((size1,size2**5))
     for i in range(size1):
@@ -38,20 +22,32 @@ def concat_phi(phi1,phi2,phi3,phi4,phi5):
     return ret
 
 def regression_spline_train(n_train, m_train, seed, datapath, splinenumber = np.arange(2,7)):
+    """
+    Train a regression spline model using B-splines, optimizing over the number of splines 
+    to fit the data and selecting the best model through validation.
+    
+    Parameters:
+    n_train: Sample size.
+    m_train: Sampling frequency.
+    seed: Seed for data loading, used to identify the data file.
+    datapath: Path to the data file.
+    splinenumber: Array of possible numbers of splines to test.
+    
+    Returns:
+    tuple: A tuple containing:
+        - valid_loss: Array with validation losses and corresponding spline numbers.
+        - test_error_result: Mean squared error on the test data using the optimal spline number.
+    """
     print(str(seed)+"kaishi")
     o = 3
     n_train = n_train
     m_train = m_train
     n_vaild = math.ceil(n_train*0.25)
     m_valid = m_train
-    # ./720victory/holder/wei3d/data/data
     aa = np.load(datapath+str(seed)+".npy",allow_pickle=True).item()
 
     x_test = aa["x_test"]
     y_test = aa["y_test"]
-
-    # x_test = x_test[1:100]
-    # y_test = y_test[1:100]
 
     x = aa["x"]
     y = aa["y"]
@@ -68,8 +64,6 @@ def regression_spline_train(n_train, m_train, seed, datapath, splinenumber = np.
     y1 = y.reshape(-1)
     x_valid = x_valid.reshape(-1,x_dim)
     y_valid = y_valid.reshape(-1)
-    # print(x_test.shape[0])
-
     print("data is realy")
 
     valid_loss = np.ndarray((splinenumber.shape[0],2))
@@ -84,7 +78,6 @@ def regression_spline_train(n_train, m_train, seed, datapath, splinenumber = np.
         t = np.r_[[0]*o,t,[1]*o]
         tp = np.linspace(-1,1,k,endpoint=True)
         tp = np.r_[[-1]*o,tp,[1]*o]
-        # Phi n*k
         Phi1 = BSpline.design_matrix(x1[:,0].reshape(-1),tp,o).toarray()
         Phi2 = BSpline.design_matrix(x1[:,1].reshape(-1),tp,o).toarray()
         Phi3 = BSpline.design_matrix(x1[:,2].reshape(-1),t,o).toarray()
@@ -98,9 +91,6 @@ def regression_spline_train(n_train, m_train, seed, datapath, splinenumber = np.
         Mat_working = Mat[:, indexused]
 
         try:
-            # numpy.linalg.solve()
-            # coef = np.matmul(np.linalg.inv(np.matmul(np.transpose(Mat),Mat) + np.eye(size2**3)*(10**(-8))),np.matmul(np.transpose(Mat),y1))
-            # coef, residuals, rank, s = np.linalg.lstsq(Mat_working,y1)
             coef = np.linalg.solve(np.matmul(np.transpose(Mat_working),Mat_working) + np.eye(indexused.shape[0])*(10**(-6)),np.matmul(np.transpose(Mat_working),y1))
 
             ## validation
@@ -120,7 +110,7 @@ def regression_spline_train(n_train, m_train, seed, datapath, splinenumber = np.
         except: 
             pass
         T4 = time.time()
-        print('程序运行时间:%s毫秒' % ((T4 - T3)*1000))
+        print('time: %s ms' % ((T4 - T3)*1000))
         ## test
     indopth = valid_loss[:,0].argmin()
     k = round(np.array(valid_loss)[indopth,1])
@@ -145,7 +135,6 @@ def regression_spline_train(n_train, m_train, seed, datapath, splinenumber = np.
     Mat_working = Mat[:, indexused]
     
 
-    # coef, residuals, rank, s = np.linalg.lstsq(Mat_working,y1)
     coef = np.linalg.solve(np.matmul(np.transpose(Mat_working),Mat_working) + np.eye(indexused.shape[0])*(10**(-6)),np.matmul(np.transpose(Mat_working),y1))
 
     Mat_test = concat_phi(Phi1_test,Phi2_test,Phi3_test,Phi4_test,Phi5_test)
@@ -154,7 +143,7 @@ def regression_spline_train(n_train, m_train, seed, datapath, splinenumber = np.
     test_error_result = np.mean(np.square(y_test-Y_fit))
 
     T2 =time.time()
-    print("splinenumber:"+str(k)+'程序运行时间:%s毫秒' % ((T2 - T1)*1000))
+    print("splinenumber:"+str(k)+'time: %s ms' % ((T2 - T1)*1000))
     return valid_loss,test_error_result
 
 
@@ -166,7 +155,7 @@ ind_matrix = [[n_vector[i], m_vector[j]] for j in range(len(m_vector)) for i in 
 
 n_repeat = 50 
 if __name__ == '__main__': 
-    for ij in range(len(ind_matrix)):  ##################################
+    for ij in range(len(ind_matrix)): 
         i = ind_matrix[ij][0] 
         j = ind_matrix[ij][1] 
         print(i,j)

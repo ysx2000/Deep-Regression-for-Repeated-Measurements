@@ -1,37 +1,39 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import csaps
-import math
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np 
-import torch            
-import torch.nn as nn  
-import torch.nn.functional as F   
-import pandas as pd
-from tqdm import tqdm
-from torch.utils.data import DataLoader, Dataset
-from PIL import Image 
-import imageio 
-import os, gc
-import random 
-import pynvml
+import math  
 import multiprocessing
-import itertools
-import subprocess
-import gc
-from functools import partial
 import time
 
 
 def kernel(x,y): 
+    """
+    Compute the Laplacian kernel between two points x and y.
+    $$ k(x,y) = \exp(-\|x-y\|) $$
+    
+    Returns: k(x,y).
+    """
     d = np.sqrt(np.sum((x-y)**2)) 
     return np.exp(-d) 
-bankernel0 = 1 
+bankernel0 = 1 # k(x,x)=1
 
 
 
 def RKHS_train(n_train, m_train, seed, datapath, lambdac_set = np.geomspace(1e-20, 1e-2, 50)):
+    """
+    Train a model using Reproducing Kernel Hilbert Space (RKHS) methods to fit data, 
+    selecting the optimal regularization parameter through validation.
+    
+    Parameters:
+    n_train: sample size.
+    m_train: sampling frequency.
+    seed: Seed for data loading, used to identify the data file.
+    datapath: Path to the data file.
+    lambdac_set: Array of regularization parameters.
+    
+    Returns:
+    tuple: A tuple containing:
+        - valid_loss: Array with validation losses and corresponding lambda values.
+        - test_error_result: Mean squared error on the test data using the optimal lambda.
+    """
     print(str(seed)+"kaishi")
     n_train = n_train
     m_train = m_train
@@ -57,7 +59,6 @@ def RKHS_train(n_train, m_train, seed, datapath, lambdac_set = np.geomspace(1e-2
     y1 = y.reshape(-1)
     x_valid = x_valid.reshape(-1,x_dim)
     y_valid = y_valid.reshape(-1)
-    # print(x_test.shape[0])
 
     print("data is realy")
 
@@ -103,7 +104,7 @@ def RKHS_train(n_train, m_train, seed, datapath, lambdac_set = np.geomspace(1e-2
     test_error_result = np.mean(((coef@Phi_test) - y_test)**2)
 
     T2 =time.time()
-    print('程序运行时间:%s毫秒' % ((T2 - T1)*1000))
+    print('time:%s' % ((T2 - T1)*1000))
     return valid_loss,test_error_result
 
 
@@ -116,7 +117,7 @@ ind_matrix = [[n_vector[i], m_vector[j]] for i in range(len(n_vector)) for j in 
 
 n_repeat = 50
 if __name__ == '__main__': 
-    for ij in range(len(ind_matrix)-1):  ##################################
+    for ij in range(len(ind_matrix)-1): 
         i = ind_matrix[ij][0] 
         j = ind_matrix[ij][1] 
         print(i,j) 
