@@ -1,6 +1,9 @@
 # Deep-regression-for-repeated-measurements
 
-This repository contains code and results for simulations and real data analyses referenced in the associated research paper. 
+This repository contains code and results for simulations and real data analyses referenced in [the associated research paper](https://www.tandfonline.com/doi/full/10.1080/01621459.2025.2458344). 
+
+Shunxing Yan, Fang Yao, & Hang Zhou. (2025). Deep Regression for Repeated Measurements. Journal of the American Statistical Association.
+
 It is structured into two main directories: `Simulation` and `RealData`.
 
 ## Directory Structure
